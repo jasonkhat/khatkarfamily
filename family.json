@@ -1,0 +1,102 @@
+[
+    {
+        "id": "john",
+        "name": "John Anderson",
+        "generation": "BB",
+        "birthOrder": 1,
+        "photo": "",
+        "parents": [],
+        "spouse": "mary",
+        "children": ["michael", "susan", "robert"]
+    },
+    {
+        "id": "mary",
+        "name": "Mary Anderson",
+        "generation": "BB",
+        "birthOrder": 2,
+        "photo": "",
+        "parents": [],
+        "spouse": "john",
+        "children": ["michael", "susan", "robert"]
+    },
+    {
+        "id": "michael",
+        "name": "Michael Anderson",
+        "generation": "X",
+        "birthOrder": 1,
+        "photo": "",
+        "parents": ["john", "mary"],
+        "spouse": "lisa",
+        "children": ["alex", "emma"]
+    },
+    {
+        "id": "lisa",
+        "name": "Lisa Anderson",
+        "generation": "X",
+        "birthOrder": 2,
+        "photo": "",
+        "parents": [],
+        "spouse": "michael",
+        "children": ["alex", "emma"]
+    },
+    {
+        "id": "susan",
+        "name": "Susan Anderson",
+        "generation": "X",
+        "birthOrder": 2,
+        "photo": "",
+        "parents": ["john", "mary"],
+        "spouse": "david",
+        "children": ["sam"]
+    },
+    {
+        "id": "david",
+        "name": "David Anderson",
+        "generation": "X",
+        "birthOrder": 3,
+        "photo": "",
+        "parents": [],
+        "spouse": "susan",
+        "children": ["sam"]
+    },
+    {
+        "id": "robert",
+        "name": "Robert Anderson",
+        "generation": "X",
+        "birthOrder": 3,
+        "photo": "",
+        "parents": ["john", "mary"],
+        "spouse": "",
+        "children": []
+    },
+    {
+        "id": "alex",
+        "name": "Alex Anderson",
+        "generation": "M",
+        "birthOrder": 1,
+        "photo": "",
+        "parents": ["michael", "lisa"],
+        "spouse": "",
+        "children": []
+    },
+    {
+        "id": "emma",
+        "name": "Emma Anderson",
+        "generation": "M",
+        "birthOrder": 2,
+        "photo": "",
+        "parents": ["michael", "lisa"],
+        "spouse": "",
+        "children": []
+    },
+    {
+        "id": "sam",
+        "name": "Sam Anderson",
+        "generation": "Z",
+        "birthOrder": 1,
+        "photo": "",
+        "parents": ["susan", "david"],
+        "spouse": "",
+        "children": []
+    }
+]
