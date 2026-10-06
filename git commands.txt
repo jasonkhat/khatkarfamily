@@ -1,4 +1,4 @@
-cd ~/jasonkhatkar.github.io
+cd ~/khatkarfamily
 git add .
 git commit -m ""
 git push origin main

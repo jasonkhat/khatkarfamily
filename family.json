@@ -1,102 +1,193 @@
 [
     {
-        "id": "john",
-        "name": "John Anderson",
-        "generation": "BB",
-        "birthOrder": 1,
-        "photo": "",
-        "parents": [],
-        "spouse": "mary",
-        "children": ["michael", "susan", "robert"]
-    },
-    {
-        "id": "mary",
-        "name": "Mary Anderson",
-        "generation": "BB",
+        "id": "jason",
+        "name": "Jason Khatkar",
+        "generation": "Z",
         "birthOrder": 2,
         "photo": "",
-        "parents": [],
-        "spouse": "john",
-        "children": ["michael", "susan", "robert"]
+        "parents": ["rajinder","sukhwinder"],
+        "spouse": ""
     },
     {
-        "id": "michael",
-        "name": "Michael Anderson",
-        "generation": "X",
-        "birthOrder": 1,
-        "photo": "",
-        "parents": ["john", "mary"],
-        "spouse": "lisa",
-        "children": ["alex", "emma"]
-    },
-    {
-        "id": "lisa",
-        "name": "Lisa Anderson",
-        "generation": "X",
-        "birthOrder": 2,
-        "photo": "",
-        "parents": [],
-        "spouse": "michael",
-        "children": ["alex", "emma"]
-    },
-    {
-        "id": "susan",
-        "name": "Susan Anderson",
-        "generation": "X",
-        "birthOrder": 2,
-        "photo": "",
-        "parents": ["john", "mary"],
-        "spouse": "david",
-        "children": ["sam"]
-    },
-    {
-        "id": "david",
-        "name": "David Anderson",
-        "generation": "X",
-        "birthOrder": 3,
-        "photo": "",
-        "parents": [],
-        "spouse": "susan",
-        "children": ["sam"]
-    },
-    {
-        "id": "robert",
-        "name": "Robert Anderson",
-        "generation": "X",
-        "birthOrder": 3,
-        "photo": "",
-        "parents": ["john", "mary"],
-        "spouse": "",
-        "children": []
-    },
-    {
-        "id": "alex",
-        "name": "Alex Anderson",
-        "generation": "M",
-        "birthOrder": 1,
-        "photo": "",
-        "parents": ["michael", "lisa"],
-        "spouse": "",
-        "children": []
-    },
-    {
-        "id": "emma",
-        "name": "Emma Anderson",
-        "generation": "M",
-        "birthOrder": 2,
-        "photo": "",
-        "parents": ["michael", "lisa"],
-        "spouse": "",
-        "children": []
-    },
-    {
-        "id": "sam",
-        "name": "Sam Anderson",
+        "id": "joben",
+        "name": "Joben Khatkar",
         "generation": "Z",
         "birthOrder": 1,
         "photo": "",
-        "parents": ["susan", "david"],
-        "spouse": "",
-        "children": []
+        "parents": ["rajinder", "sukhwinder"],
+        "spouse": ""
+    },
+    {
+        "id": "rajinder",
+        "name": "Rajinder Khatkar",
+        "generation": "X",
+        "birthOrder": 6,
+        "photo": "",
+        "parents": ["nirmal","resham"],
+        "spouse": "sukhwinder"
+
+    },
+    {
+        "id": "sukhwinder",
+        "name": "Sukhwinder Khatkar",
+        "generation": "X",
+        "birthOrder": 4,
+        "photo": "",
+        "parents": ["mohinder","jarnail"],
+        "spouse": "rajinder"
+
+    },
+    {
+        "id": "tony",
+        "name": "Tony Singh",
+        "generation": "X",
+        "birthOrder": 1,
+        "photo": "",
+        "parents": ["mohinder", "jarnail"],
+        "spouse": "kashmir"
+    },
+    {
+        "id": "kashmir",
+        "name": "Kashmir Kaur",
+        "generation": "X",
+        "birthOrder": 1,
+        "photo": "",
+        "parents": [],
+        "spouse": "tony"
+    },
+    {
+        "id": "pj",
+        "name": "Prabhjot Khatkar",
+        "generation": "Z",
+        "birthOrder": 1,
+        "photo": "",
+        "parents": ["kashmir", "tony"],
+        "spouse": ""
+    },
+    {
+        "id": "ginny",
+        "name": "Gurleen Khatkar",
+        "generation": "Z",
+        "birthOrder": 2,
+        "photo": "",
+        "parents": ["kashmir", "tony"],
+        "spouse": ""
+    },
+    {
+        "id": "chachu",
+        "name": "Jaswinder Khatkar",
+        "generation": "X",
+        "birthOrder": 6,
+        "photo": "",
+        "parents": ["jarnail", "mohinder"],
+        "spouse": "chachi"
+    },
+    {
+        "id": "chachi",
+        "name": "Rajvinder Khatkar",
+        "generation": "X",
+        "birthOrder": 1,
+        "photo": "",
+        "parents": [""],
+        "spouse": "chachu"
+    },
+        {
+        "id": "jasleen",
+        "name": "Jasleen Khatkar",
+        "generation": "A",
+        "birthOrder": 1,
+        "photo": "",
+        "parents": ["chachi", "chachu"],
+        "spouse": ""
+    },
+        {
+        "id": "ekam",
+        "name": "Ekam Khatkar",
+        "generation": "A",
+        "birthOrder": 2,
+        "photo": "",
+        "parents": ["chachi", "chachu"],
+        "spouse": ""
+        },
+        {
+        "id": "guddo",
+        "name": "Guddo Bhuaji",
+        "generation": "BB",
+        "birthOrder": 3,
+        "photo": "",
+        "parents": ["mohinder", "jarnail"],
+        "spouse": "gurmukh"
+    },
+        {
+        "id": "gurmukh",
+        "name": "Gurmukh Fufferji",
+        "generation": "BB",
+        "birthOrder": 1,
+        "photo": "",
+        "parents": [""],
+        "spouse": "guddo"
+    },
+        {
+        "id": "diljot",
+        "name": "Diljot Deol",
+        "generation": "A",
+        "birthOrder": 1,
+        "photo": "",
+        "parents": ["guddo", "gurmukh"],
+        "spouse": ""
+    },
+        {
+        "id": "balbiro",
+        "name": "Balbiro Bhuaji",
+        "generation": "BB",
+        "birthOrder": 1,
+        "photo": "",
+        "parents": ["jarnail", "mohinder"],
+        "spouse": ""
+    },
+        {
+        "id": "kinde",
+        "name": "Kinde Bhuaji",
+        "generation": "BB",
+        "birthOrder": 2,
+        "photo": "",
+        "parents": ["jarnail", "mohinder"],
+        "spouse": ""
+    },
+        {
+        "id": "mohinder",
+        "name": "Mohinder Khatkar",
+        "generation": "G",
+        "birthOrder": 1,
+        "photo": "",
+        "parents": [],
+        "spouse": "jarnail"
+    },
+        {
+        "id": "jarnail",
+        "name": "Jarnail Khatkar",
+        "generation": "G",
+        "birthOrder": 1,
+        "photo": "",
+        "parents": [""],
+        "spouse": "mohinder"
+    },
+        {
+        "id": "nirmal",
+        "name": "Nirmal Dhugga",
+        "generation": "G",
+        "birthOrder": 1,
+        "photo": "",
+        "parents": [""],
+        "spouse": "resham"
+    },
+        {
+        "id": "resham",
+        "name": "Resham Dhugga",
+        "generation": "G",
+        "birthOrder": 1,
+        "photo": "",
+        "parents": [""],
+        "spouse": "nirmal"
     }
 ]

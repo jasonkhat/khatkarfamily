@@ -1,4 +1,4 @@
-const generationOrder = ["BB", "X", "M", "Z", "A", "B"];
+const generationOrder = ["G", "BB", "X", "M", "Z", "A", "B"];
 
 const treeContainer = document.getElementById("family-tree");
 
@@ -556,23 +556,23 @@ function drawParentConnections(
      */
     units.forEach(parentUnit => {
 
-        const children = [];
+const children = [];
 
-        parentUnit.people.forEach(parent => {
+parentUnit.people.forEach(parent => {
 
-            if (!parent.children) {
-                return;
-            }
+    family.forEach(child => {
 
-            parent.children.forEach(childId => {
+        if (
+            child.parents &&
+            child.parents.includes(parent.id) &&
+            !children.includes(child.id)
+        ) {
+            children.push(child.id);
+        }
 
-                if (!children.includes(childId)) {
-                    children.push(childId);
-                }
+    });
 
-            });
-
-        });
+});
 
         if (children.length === 0) {
             return;
