@@ -152,28 +152,6 @@ generationOrder.forEach(generation => {
 
     let currentX = 200;
 
-    /*
-     * Sort units by the earliest birth order
-     * of the people inside the unit.
-     */
-    generationUnits.sort((a, b) => {
-
-        const aOrder = Math.min(
-            ...a.people.map(person =>
-                person.birthOrder ?? 999
-            )
-        );
-
-        const bOrder = Math.min(
-            ...b.people.map(person =>
-                person.birthOrder ?? 999
-            )
-        );
-
-        return aOrder - bOrder;
-
-    });
-
 
     generationUnits.forEach(unit => {
 
