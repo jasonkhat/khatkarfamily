@@ -132,10 +132,14 @@ function drawTree(family) {
     treeContainer.appendChild(svg);
 
 
-    /*
-     * Draw each generation.
-     */
-    generationOrder.forEach(generation => {
+/*
+ * Position each generation.
+ *
+ * People are ordered by birth order within
+ * their biological family. Spouses are kept
+ * together visually.
+ */
+generationOrder.forEach(generation => {
 
     const generationUnits =
         unitsByGeneration[generation];
@@ -148,6 +152,29 @@ function drawTree(family) {
 
     let currentX = 200;
 
+    /*
+     * Sort units by the earliest birth order
+     * of the people inside the unit.
+     */
+    generationUnits.sort((a, b) => {
+
+        const aOrder = Math.min(
+            ...a.people.map(person =>
+                person.birthOrder ?? 999
+            )
+        );
+
+        const bOrder = Math.min(
+            ...b.people.map(person =>
+                person.birthOrder ?? 999
+            )
+        );
+
+        return aOrder - bOrder;
+
+    });
+
+
     generationUnits.forEach(unit => {
 
         const unitWidth =
@@ -158,17 +185,15 @@ function drawTree(family) {
         unit.x = currentX;
         unit.y = y;
 
-
         currentX += unitWidth + unitGap;
+
     });
+
 });
 
 /*
- * Move children so they are centered
- * underneath their parent unit.
- *
- * Children are determined from their "parents"
- * field rather than a redundant "children" field.
+ * Center each biological sibling group
+ * underneath its parents.
  */
 units.forEach(parentUnit => {
 
@@ -176,17 +201,20 @@ units.forEach(parentUnit => {
         parentUnit.people.map(person => person.id);
 
     /*
-     * Find every person whose parents include
-     * someone in this spouse unit.
+     * Find children whose parents belong to
+     * this parent unit.
+     *
+     * Both parents must be represented when
+     * the child has two parents.
      */
-    const children = family.filter(person => {
+    const children = family.filter(child => {
 
-        if (!person.parents) {
+        if (!child.parents || child.parents.length === 0) {
             return false;
         }
 
-        return person.parents.some(parentId =>
-            parentIds.includes(parentId)
+        return parentIds.every(parentId =>
+            child.parents.includes(parentId)
         );
 
     });
@@ -198,7 +226,17 @@ units.forEach(parentUnit => {
 
 
     /*
-     * Find the visual unit containing each child.
+     * Sort siblings by birth order.
+     */
+    children.sort((a, b) =>
+        (a.birthOrder ?? 999) -
+        (b.birthOrder ?? 999)
+    );
+
+
+    /*
+     * Find the visual units containing
+     * those children.
      */
     const childUnits = [];
 
@@ -242,16 +280,19 @@ units.forEach(parentUnit => {
 
 
     /*
-     * Calculate the width of the entire
-     * sibling group.
+     * Width of every child unit.
      */
-    const childWidths = childUnits.map(unit =>
-        unit.people.length === 2
-            ? cardWidth * 2 + spouseGap
-            : cardWidth
-    );
+    const childWidths =
+        childUnits.map(unit =>
+            unit.people.length === 2
+                ? cardWidth * 2 + spouseGap
+                : cardWidth
+        );
 
 
+    /*
+     * Total width of the sibling group.
+     */
     const totalWidth =
         childWidths.reduce(
             (sum, width) => sum + width,
@@ -261,8 +302,8 @@ units.forEach(parentUnit => {
 
 
     /*
-     * Start so the entire sibling group
-     * is centered underneath the parent.
+     * Start position that centers the
+     * entire sibling group below parents.
      */
     let childX =
         parentCenter - totalWidth / 2;
