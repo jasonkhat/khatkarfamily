@@ -1,3 +1,4 @@
+
 const generationOrder = ["G", "BB", "X", "M", "Z", "A", "B"];
 
 const treeContainer = document.getElementById("family-tree");
@@ -16,21 +17,21 @@ function drawTree(family) {
     const cardHeight = 140;
 
     const spouseGap = 30;
-    const unitGap = 100;
 
     const verticalGap = 180;
 
     const generationY = {};
 
     generationOrder.forEach((generation, index) => {
-        generationY[generation] = index * verticalGap + 100;
+        generationY[generation] =
+            index * verticalGap + 100;
     });
 
 
     /*
-     * Create a lookup table so we can
-     * quickly find people by ID.
+     * PEOPLE LOOKUP
      */
+
     const people = {};
 
     family.forEach(person => {
@@ -39,52 +40,77 @@ function drawTree(family) {
 
 
     /*
-     * Build spouse units.
+     * CREATE VISUAL UNITS
      *
-     * A married couple becomes one visual unit.
-     * An unmarried person becomes a unit by themselves.
+     * A unit is only a visual convenience.
+     *
+     * Biological relationships are ALWAYS based
+     * on individual people.
      */
+
     const units = [];
-    const usedPeople = new Set();
+    const personToUnit = {};
+    const used = new Set();
 
     family.forEach(person => {
 
-        if (usedPeople.has(person.id)) {
+        if (used.has(person.id)) {
             return;
         }
+
+        let unit;
 
         if (
             person.spouse &&
             people[person.spouse] &&
-            !usedPeople.has(person.spouse)
+            !used.has(person.spouse)
         ) {
 
             const spouse = people[person.spouse];
 
-            units.push({
+            unit = {
                 people: [person, spouse],
-                generation: person.generation
-            });
+                generation: person.generation,
+                x: 0,
+                y: generationY[person.generation]
+            };
 
-            usedPeople.add(person.id);
-            usedPeople.add(spouse.id);
+            used.add(person.id);
+            used.add(spouse.id);
 
         } else {
 
-            units.push({
+            unit = {
                 people: [person],
-                generation: person.generation
-            });
+                generation: person.generation,
+                x: 0,
+                y: generationY[person.generation]
+            };
 
-            usedPeople.add(person.id);
+            used.add(person.id);
         }
+
+        units.push(unit);
+
+        unit.people.forEach(member => {
+            personToUnit[member.id] = unit;
+        });
+
     });
 
 
     /*
-     * Group units by generation.
+     * BASIC INITIAL POSITION
+     *
+     * This prevents people with no parents from
+     * having undefined positions.
      */
+
     const unitsByGeneration = {};
+
+    generationOrder.forEach(generation => {
+        unitsByGeneration[generation] = [];
+    });
 
     units.forEach(unit => {
 
@@ -93,380 +119,350 @@ function drawTree(family) {
         }
 
         unitsByGeneration[unit.generation].push(unit);
+
+    });
+
+
+    generationOrder.forEach(generation => {
+
+        const generationUnits =
+            unitsByGeneration[generation];
+
+        let x = 200;
+
+        generationUnits.forEach(unit => {
+
+            unit.x = x;
+
+            const width =
+                unit.people.length === 2
+                    ? cardWidth * 2 + spouseGap
+                    : cardWidth;
+
+            x += width + 100;
+
+        });
+
     });
 
 
     /*
-     * Calculate SVG size.
+     * POSITION BIOLOGICAL CHILDREN
+     *
+     * This is the important part.
+     *
+     * Each individual child receives a position
+     * based ONLY on:
+     *
+     * 1. Their biological parents
+     * 2. Their birth order
+     *
+     * Their spouse is ignored while determining
+     * their biological position.
      */
-    const maxUnits = Math.max(
-        ...Object.values(unitsByGeneration)
-            .map(units => units.length)
-    );
 
-    const width = Math.max(
-        window.innerWidth,
-        maxUnits * (cardWidth * 2 + spouseGap + unitGap) + 300
-    );
+    const siblingGroups = {};
 
-    const height =
-        generationOrder.length * verticalGap + 300;
+    family.forEach(person => {
+
+        if (
+            !Array.isArray(person.parents) ||
+            person.parents.length === 0
+        ) {
+            return;
+        }
+
+        const parentKey =
+            [...person.parents]
+                .sort()
+                .join("|");
+
+        if (!siblingGroups[parentKey]) {
+            siblingGroups[parentKey] = [];
+        }
+
+        siblingGroups[parentKey].push(person);
+
+    });
 
 
     /*
-     * Create SVG.
+     * Process each biological family.
      */
-    const svg = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "svg"
+
+    Object.values(siblingGroups).forEach(children => {
+
+        children.sort((a, b) => {
+
+            return (
+                (a.birthOrder ?? 999) -
+                (b.birthOrder ?? 999)
+            );
+
+        });
+
+
+        /*
+         * Find the biological parents.
+         */
+
+        const parentPeople =
+            children[0].parents
+                .map(id => people[id])
+                .filter(Boolean);
+
+
+        if (parentPeople.length === 0) {
+            return;
+        }
+
+
+        /*
+         * Find the visual units containing
+         * those biological parents.
+         */
+
+        const parentUnits =
+            parentPeople
+                .map(parent => personToUnit[parent.id])
+                .filter(Boolean);
+
+
+        if (parentUnits.length === 0) {
+            return;
+        }
+
+
+        /*
+         * Find the center of the parent family.
+         */
+
+        let parentLeft = Infinity;
+        let parentRight = -Infinity;
+
+        parentUnits.forEach(unit => {
+
+            const width =
+                unit.people.length === 2
+                    ? cardWidth * 2 + spouseGap
+                    : cardWidth;
+
+            parentLeft =
+                Math.min(parentLeft, unit.x);
+
+            parentRight =
+                Math.max(
+                    parentRight,
+                    unit.x + width
+                );
+
+        });
+
+        const parentCenter =
+            (parentLeft + parentRight) / 2;
+
+
+        /*
+         * Biological sibling spacing.
+         *
+         * IMPORTANT:
+         *
+         * We use ONE card width per child.
+         *
+         * A spouse does not consume a biological
+         * sibling position.
+         */
+
+        const siblingGap = 100;
+
+        const totalWidth =
+            children.length * cardWidth +
+            (children.length - 1) * siblingGap;
+
+
+        let childCenterX =
+            parentCenter - totalWidth / 2;
+
+
+        /*
+         * Position each biological child.
+         */
+
+        children.forEach(child => {
+
+            const unit =
+                personToUnit[child.id];
+
+            if (!unit) {
+                return;
+            }
+
+
+            /*
+             * Find this person's position inside
+             * their spouse unit.
+             */
+
+            const index =
+                unit.people.findIndex(
+                    member =>
+                        member.id === child.id
+                );
+
+
+            /*
+             * Desired LEFT EDGE of the child's
+             * individual card.
+             */
+
+            const desiredX =
+                childCenterX;
+
+
+            /*
+             * If the biological child is the first
+             * spouse, the unit starts here.
+             */
+
+            if (index === 0) {
+
+                unit.x = desiredX;
+
+            }
+
+            /*
+             * If the biological child is the second
+             * spouse, move the entire visual unit
+             * left so THIS PERSON occupies the
+             * biological position.
+             */
+
+            else {
+
+                unit.x =
+                    desiredX -
+                    cardWidth -
+                    spouseGap;
+
+            }
+
+
+            unit.y =
+                generationY[child.generation];
+
+
+            childCenterX +=
+                cardWidth + siblingGap;
+
+        });
+
+    });
+
+
+    /*
+     * CALCULATE SVG SIZE
+     */
+
+    let rightmost = 0;
+
+    units.forEach(unit => {
+
+        const width =
+            unit.people.length === 2
+                ? cardWidth * 2 + spouseGap
+                : cardWidth;
+
+        rightmost =
+            Math.max(
+                rightmost,
+                unit.x + width
+            );
+
+    });
+
+
+    const width =
+        Math.max(
+            window.innerWidth,
+            rightmost + 300
+        );
+
+    const height =
+        generationOrder.length *
+        verticalGap +
+        300;
+
+
+    /*
+     * CREATE SVG
+     */
+
+    const svg =
+        document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "svg"
+        );
+
+    svg.setAttribute(
+        "width",
+        width
     );
 
-    svg.setAttribute("width", width);
-    svg.setAttribute("height", height);
+    svg.setAttribute(
+        "height",
+        height
+    );
 
     svg.setAttribute(
         "viewBox",
         `0 0 ${width} ${height}`
     );
 
+    treeContainer.innerHTML = "";
+
     treeContainer.appendChild(svg);
 
 
-/*
- * POSITION THE TREE
- *
- * The layout is based on INDIVIDUAL PEOPLE first.
- *
- * Biological relationships determine where a person belongs.
- * Spouses are only kept visually adjacent and do not affect
- * the person's birth-order position.
- */
-
-
-/*
- * Give every visual unit its generation Y position.
- */
-units.forEach(unit => {
-
-    unit.y = generationY[unit.generation];
-
-});
-
-
-/*
- * Give every unit a basic fallback X position.
- *
- * This is only used for people who do not have a
- * biological parent group that we can position them under.
- */
-generationOrder.forEach(generation => {
-
-    const generationUnits =
-        unitsByGeneration[generation];
-
-    if (!generationUnits) {
-        return;
-    }
-
-    let currentX = 200;
-
-    generationUnits.forEach(unit => {
-
-        const unitWidth =
-            unit.people.length === 2
-                ? cardWidth * 2 + spouseGap
-                : cardWidth;
-
-        unit.x = currentX;
-
-        currentX +=
-            unitWidth + unitGap;
-
-    });
-
-});
-
-
-/*
- * Build biological sibling groups.
- *
- * People with the same parents belong to the same
- * biological sibling group.
- */
-const siblingGroups = {};
-
-family.forEach(person => {
-
-    const parents =
-        Array.isArray(person.parents)
-            ? [...person.parents].sort()
-            : [];
-
-    const key = parents.join("|");
-
-    if (!siblingGroups[key]) {
-        siblingGroups[key] = [];
-    }
-
-    siblingGroups[key].push(person);
-
-});
-
-
-/*
- * Sort each biological sibling group by birth order.
- *
- * IMPORTANT:
- *
- * This sorts INDIVIDUAL PEOPLE.
- *
- * A spouse's birthOrder therefore cannot affect
- * where their spouse is placed in their family.
- */
-Object.values(siblingGroups).forEach(group => {
-
-    group.sort((a, b) => {
-
-        return (
-            (a.birthOrder ?? 999) -
-            (b.birthOrder ?? 999)
-        );
-
-    });
-
-});
-
-
-/*
- * Position each biological sibling group beneath
- * its actual biological parents.
- */
-Object.values(siblingGroups).forEach(group => {
-
     /*
-     * A person with no parents cannot be positioned
-     * beneath a parent group.
+     * DRAW PEOPLE
      */
-    if (
-        group.length === 0 ||
-        !group[0].parents ||
-        group[0].parents.length === 0
-    ) {
-        return;
-    }
-
-
-    /*
-     * Find the visual units containing the parents.
-     */
-    const parentUnits = [];
-
-    group[0].parents.forEach(parentId => {
-
-        const parentUnit =
-            units.find(unit =>
-                unit.people.some(
-                    person =>
-                        person.id === parentId
-                )
-            );
-
-        if (
-            parentUnit &&
-            !parentUnits.includes(parentUnit)
-        ) {
-            parentUnits.push(parentUnit);
-        }
-
-    });
-
-
-    /*
-     * If the parents cannot be found, keep the
-     * fallback position.
-     */
-    if (parentUnits.length === 0) {
-        return;
-    }
-
-
-    /*
-     * Find the left and right edges of the
-     * biological parent group.
-     */
-    const parentLeft =
-        Math.min(
-            ...parentUnits.map(unit => unit.x)
-        );
-
-    const parentRight =
-        Math.max(
-            ...parentUnits.map(unit => {
-
-                const width =
-                    unit.people.length === 2
-                        ? cardWidth * 2 + spouseGap
-                        : cardWidth;
-
-                return unit.x + width;
-
-            })
-        );
-
-
-    /*
-     * Center of the biological parent group.
-     */
-    const parentCenter =
-        (parentLeft + parentRight) / 2;
-
-
-    /*
-     * IMPORTANT:
-     *
-     * Each biological child gets one card-width
-     * position in the sibling row.
-     *
-     * Their spouse does NOT increase the width
-     * used to determine sibling order.
-     */
-    const totalWidth =
-        group.length * cardWidth +
-        (group.length - 1) * unitGap;
-
-
-    let childLeft =
-        parentCenter - totalWidth / 2;
-
-
-    /*
-     * Place each biological child.
-     */
-    group.forEach(person => {
-
-        const unit =
-            units.find(unit =>
-                unit.people.some(
-                    member =>
-                        member.id === person.id
-                )
-            );
-
-        if (!unit) {
-            return;
-        }
-
-
-        /*
-         * Determine whether this person is the
-         * first or second person in their spouse unit.
-         */
-        const personIndex =
-            unit.people.findIndex(
-                member =>
-                    member.id === person.id
-            );
-
-
-        /*
-         * The person's own card needs to occupy
-         * the biological sibling position.
-         *
-         * If they are the second spouse, move the
-         * entire visual unit left so their card
-         * lands at childLeft.
-         */
-        if (personIndex === 0) {
-
-            unit.x =
-                childLeft;
-
-        } else {
-
-            unit.x =
-                childLeft -
-                cardWidth -
-                spouseGap;
-
-        }
-
-
-        /*
-         * Keep the unit in its correct generation.
-         */
-        unit.y =
-            generationY[unit.generation];
-
-
-        /*
-         * Advance by ONE biological card width,
-         * not by the spouse-unit width.
-         */
-        childLeft +=
-            cardWidth + unitGap;
-
-    });
-
-});
-
-
-/*
- * Shift the entire tree right if anything
- * extends too far toward the left edge.
- */
-const leftMargin = 200;
-
-const leftmostX =
-    Math.min(
-        ...units.map(unit => unit.x)
-    );
-
-if (leftmostX < leftMargin) {
-
-    const shiftX =
-        leftMargin - leftmostX;
 
     units.forEach(unit => {
 
-        unit.x += shiftX;
+        drawUnit(
+            svg,
+            unit,
+            unit.x,
+            unit.y,
+            cardWidth,
+            cardHeight,
+            spouseGap
+        );
 
     });
 
-}
 
+    /*
+     * DRAW BIOLOGICAL CONNECTIONS
+     */
 
-
-
-/*
- * Now draw all family units at their final positions.
- */
-units.forEach(unit => {
-
-    drawUnit(
+    drawParentConnections(
         svg,
-        unit,
-        unit.x,
-        unit.y,
+        family,
+        people,
+        personToUnit,
+        units,
         cardWidth,
         cardHeight,
         spouseGap
     );
 
-});
-
-
-drawParentConnections(
-    svg,
-    family,
-    people,
-    units,
-    cardWidth,
-    cardHeight,
-    spouseGap
-);
-
 }
 
+
+/*
+ * DRAW A PERSON / SPOUSE UNIT
+ */
 
 function drawUnit(
     svg,
@@ -481,7 +477,9 @@ function drawUnit(
     unit.people.forEach((person, index) => {
 
         const personX =
-            x + index * (cardWidth + spouseGap);
+            x +
+            index *
+            (cardWidth + spouseGap);
 
         drawPerson(
             svg,
@@ -491,18 +489,21 @@ function drawUnit(
             cardWidth,
             cardHeight
         );
+
     });
 
 
     /*
-     * Draw spouse connection.
+     * Spouse connection
      */
+
     if (unit.people.length === 2) {
 
-        const line = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "line"
-        );
+        const line =
+            document.createElementNS(
+                "http://www.w3.org/2000/svg",
+                "line"
+            );
 
         line.setAttribute(
             "x1",
@@ -535,9 +536,15 @@ function drawUnit(
         );
 
         svg.appendChild(line);
+
     }
+
 }
 
+
+/*
+ * DRAW PERSON CARD
+ */
 
 function drawPerson(
     svg,
@@ -548,27 +555,43 @@ function drawPerson(
     height
 ) {
 
-    const group = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "g"
+    const group =
+        document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "g"
+        );
+
+
+    const rectangle =
+        document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "rect"
+        );
+
+    rectangle.setAttribute(
+        "x",
+        x
     );
 
-
-    /*
-     * Card
-     */
-    const rectangle = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "rect"
+    rectangle.setAttribute(
+        "y",
+        y
     );
 
-    rectangle.setAttribute("x", x);
-    rectangle.setAttribute("y", y);
+    rectangle.setAttribute(
+        "width",
+        width
+    );
 
-    rectangle.setAttribute("width", width);
-    rectangle.setAttribute("height", height);
+    rectangle.setAttribute(
+        "height",
+        height
+    );
 
-    rectangle.setAttribute("rx", 8);
+    rectangle.setAttribute(
+        "rx",
+        8
+    );
 
     rectangle.setAttribute(
         "fill",
@@ -584,12 +607,14 @@ function drawPerson(
 
 
     /*
-     * Photo placeholder
+     * Photo
      */
-    const photo = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "rect"
-    );
+
+    const photo =
+        document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "rect"
+        );
 
     photo.setAttribute(
         "x",
@@ -622,10 +647,12 @@ function drawPerson(
     /*
      * Name
      */
-    const name = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "text"
-    );
+
+    const name =
+        document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "text"
+        );
 
     name.setAttribute(
         "x",
@@ -657,37 +684,81 @@ function drawPerson(
         "#222"
     );
 
-    name.textContent = person.name;
+    name.textContent =
+        person.name;
 
     group.appendChild(name);
 
     svg.appendChild(group);
+
 }
 
 
-function drawLine(svg, x1, y1, x2, y2) {
+/*
+ * DRAW LINE
+ */
 
-    const line = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "line"
+function drawLine(
+    svg,
+    x1,
+    y1,
+    x2,
+    y2
+) {
+
+    const line =
+        document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "line"
+        );
+
+    line.setAttribute(
+        "x1",
+        x1
     );
 
-    line.setAttribute("x1", x1);
-    line.setAttribute("y1", y1);
-    line.setAttribute("x2", x2);
-    line.setAttribute("y2", y2);
+    line.setAttribute(
+        "y1",
+        y1
+    );
 
-    line.setAttribute("stroke", "#333");
-    line.setAttribute("stroke-width", "3");
+    line.setAttribute(
+        "x2",
+        x2
+    );
+
+    line.setAttribute(
+        "y2",
+        y2
+    );
+
+    line.setAttribute(
+        "stroke",
+        "#333"
+    );
+
+    line.setAttribute(
+        "stroke-width",
+        "3"
+    );
 
     svg.appendChild(line);
+
 }
 
+
+/*
+ * DRAW BIOLOGICAL PARENT CONNECTIONS
+ *
+ * This is intentionally based on INDIVIDUAL
+ * biological parent IDs.
+ */
 
 function drawParentConnections(
     svg,
     family,
     people,
+    personToUnit,
     units,
     cardWidth,
     cardHeight,
@@ -695,25 +766,26 @@ function drawParentConnections(
 ) {
 
     /*
-     * Store the exact position of every person.
+     * Exact position of every individual card.
      */
+
     const positions = {};
 
     units.forEach(unit => {
 
         unit.people.forEach((person, index) => {
 
-            const personX =
+            const x =
                 unit.x +
-                index * (cardWidth + spouseGap);
+                index *
+                (cardWidth + spouseGap);
 
             positions[person.id] = {
 
-                /*
-                 * Center of this specific person's card.
-                 */
+                left: x,
+
                 centerX:
-                    personX + cardWidth / 2,
+                    x + cardWidth / 2,
 
                 topY:
                     unit.y,
@@ -729,170 +801,274 @@ function drawParentConnections(
 
 
     /*
-     * Draw connections from each parent unit
-     * to its children.
+     * Group children by their EXACT biological
+     * parent set.
      */
-    units.forEach(parentUnit => {
 
-const children = [];
-
-parentUnit.people.forEach(parent => {
+    const childrenByParents = {};
 
     family.forEach(child => {
 
         if (
-            child.parents &&
-            child.parents.includes(parent.id) &&
-            !children.includes(child.id)
+            !Array.isArray(child.parents) ||
+            child.parents.length === 0
         ) {
-            children.push(child.id);
+            return;
         }
+
+        const key =
+            [...child.parents]
+                .sort()
+                .join("|");
+
+        if (!childrenByParents[key]) {
+            childrenByParents[key] = [];
+        }
+
+        childrenByParents[key].push(child);
 
     });
 
-});
 
-        if (children.length === 0) {
-            return;
-        }
+    /*
+     * Draw each biological family connection.
+     */
 
+    Object.values(childrenByParents)
+        .forEach(children => {
 
-        /*
-         * Center of the entire parent unit.
-         *
-         * For a couple this is halfway between
-         * the two spouses.
-         */
-        const parentWidth =
-            parentUnit.people.length === 2
-                ? cardWidth * 2 + spouseGap
-                : cardWidth;
-
-        const parentCenterX =
-            parentUnit.x + parentWidth / 2;
+            if (children.length === 0) {
+                return;
+            }
 
 
-        /*
-         * IMPORTANT:
-         *
-         * The parent → child connection begins
-         * at the BOTTOM of the parent cards.
-         *
-         * This keeps it completely out of the
-         * parent's name area.
-         */
-        const parentBottomY =
-            parentUnit.y + cardHeight;
+            /*
+             * Sort by birth order.
+             */
 
-
-        /*
-         * Find the individual position of each child.
-         */
-        const childPositions = children
-            .map(childId => positions[childId])
-            .filter(Boolean);
-
-
-        if (childPositions.length === 0) {
-            return;
-        }
-
-
-        /*
-         * All children in this generation share
-         * the same top Y coordinate.
-         */
-        const childTopY =
-            childPositions[0].topY;
-
-
-        /*
-         * Put the branching line halfway between
-         * the bottom of the parents and the top
-         * of the children.
-         */
-        const branchY =
-            parentBottomY +
-            (childTopY - parentBottomY) / 2;
-
-
-        /*
-         * Find the individual child centers.
-         */
-        const childXs =
-            childPositions.map(
-                position => position.centerX
+            children.sort((a, b) =>
+                (a.birthOrder ?? 999) -
+                (b.birthOrder ?? 999)
             );
 
-        const minX =
-            Math.min(...childXs);
 
-        const maxX =
-            Math.max(...childXs);
+            /*
+             * Get the biological parents.
+             */
 
-
-/*
- * Spouse connection → bottom of parent cards.
- *
- * This connects the vertical family line to
- * the horizontal line between the spouses.
- */
-if (parentUnit.people.length === 2) {
-
-    const spouseLineY =
-        parentUnit.y + cardHeight / 2;
-
-    drawLine(
-        svg,
-        parentCenterX,
-        spouseLineY,
-        parentCenterX,
-        parentBottomY
-    );
-}
+            const parents =
+                children[0].parents
+                    .map(id => people[id])
+                    .filter(Boolean);
 
 
-/*
- * Bottom of parent cards → branching junction.
- */
-drawLine(
-    svg,
-    parentCenterX,
-    parentBottomY,
-    parentCenterX,
-    branchY
-);
-
-        /*
-         * Horizontal sibling branch.
-         */
-        drawLine(
-            svg,
-            minX,
-            branchY,
-            maxX,
-            branchY
-        );
+            if (parents.length === 0) {
+                return;
+            }
 
 
-        /*
-         * Branch → each individual child.
-         */
-        childPositions.forEach(position => {
+            /*
+             * Get positions of the actual parents.
+             */
+
+            const parentPositions =
+                parents
+                    .map(parent =>
+                        positions[parent.id]
+                    )
+                    .filter(Boolean);
+
+
+            if (parentPositions.length === 0) {
+                return;
+            }
+
+
+            /*
+             * Parent junction.
+             *
+             * If there are two parents, connect
+             * from the midpoint between them.
+             */
+
+            let parentCenterX;
+
+            if (parentPositions.length === 1) {
+
+                parentCenterX =
+                    parentPositions[0].centerX;
+
+            } else {
+
+                const left =
+                    Math.min(
+                        ...parentPositions.map(
+                            p => p.centerX
+                        )
+                    );
+
+                const right =
+                    Math.max(
+                        ...parentPositions.map(
+                            p => p.centerX
+                        )
+                    );
+
+                parentCenterX =
+                    (left + right) / 2;
+
+            }
+
+
+            /*
+             * Parent bottom.
+             */
+
+            const parentBottomY =
+                Math.max(
+                    ...parentPositions.map(
+                        p => p.bottomY
+                    )
+                );
+
+
+            /*
+             * Child positions.
+             */
+
+            const childPositions =
+                children
+                    .map(child =>
+                        positions[child.id]
+                    )
+                    .filter(Boolean);
+
+
+            if (childPositions.length === 0) {
+                return;
+            }
+
+
+            /*
+             * Child top.
+             */
+
+            const childTopY =
+                Math.min(
+                    ...childPositions.map(
+                        p => p.topY
+                    )
+                );
+
+
+            /*
+             * Branch height.
+             */
+
+            const branchY =
+                parentBottomY +
+                (childTopY - parentBottomY) / 2;
+
+
+            /*
+             * Connect spouses to the parent junction
+             * when both biological parents are spouses.
+             */
+
+            if (parentPositions.length === 2) {
+
+                /*
+                 * Horizontal line between the parents.
+                 */
+
+                const spouseY =
+                    parentPositions[0].topY +
+                    cardHeight / 2;
+
+                drawLine(
+                    svg,
+                    parentPositions[0].centerX,
+                    spouseY,
+                    parentPositions[1].centerX,
+                    spouseY
+                );
+
+
+                /*
+                 * Vertical from spouse midpoint
+                 * to the bottom of the cards.
+                 */
+
+                drawLine(
+                    svg,
+                    parentCenterX,
+                    spouseY,
+                    parentCenterX,
+                    parentBottomY
+                );
+
+            }
+
+
+            /*
+             * Parent → branch.
+             */
 
             drawLine(
                 svg,
-                position.centerX,
-                branchY,
-                position.centerX,
-                position.topY
+                parentCenterX,
+                parentBottomY,
+                parentCenterX,
+                branchY
             );
+
+
+            /*
+             * Horizontal sibling branch.
+             */
+
+            const minChildX =
+                Math.min(
+                    ...childPositions.map(
+                        p => p.centerX
+                    )
+                );
+
+            const maxChildX =
+                Math.max(
+                    ...childPositions.map(
+                        p => p.centerX
+                    )
+                );
+
+            drawLine(
+                svg,
+                minChildX,
+                branchY,
+                maxChildX,
+                branchY
+            );
+
+
+            /*
+             * Branch → each biological child.
+             */
+
+            childPositions.forEach(position => {
+
+                drawLine(
+                    svg,
+                    position.centerX,
+                    branchY,
+                    position.centerX,
+                    position.topY
+                );
+
+            });
 
         });
 
-    });
 }
-
 
 
 loadFamily();
