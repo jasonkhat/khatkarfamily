@@ -166,51 +166,91 @@ function drawTree(family) {
 /*
  * Move children so they are centered
  * underneath their parent unit.
+ *
+ * Children are determined from their "parents"
+ * field rather than a redundant "children" field.
  */
 units.forEach(parentUnit => {
 
-    const parent = parentUnit.people[0];
+    const parentIds =
+        parentUnit.people.map(person => person.id);
 
-    if (!parent.children || parent.children.length === 0) {
+    /*
+     * Find every person whose parents include
+     * someone in this spouse unit.
+     */
+    const children = family.filter(person => {
+
+        if (!person.parents) {
+            return false;
+        }
+
+        return person.parents.some(parentId =>
+            parentIds.includes(parentId)
+        );
+
+    });
+
+
+    if (children.length === 0) {
         return;
     }
 
-    const parentWidth =
-        parentUnit.people.length === 2
-            ? cardWidth * 2 + spouseGap
-            : cardWidth;
 
-    const parentCenter =
-        parentUnit.x + parentWidth / 2;
-
+    /*
+     * Find the visual unit containing each child.
+     */
     const childUnits = [];
 
-    parent.children.forEach(childId => {
+    children.forEach(child => {
 
         const childUnit = units.find(unit =>
             unit.people.some(person =>
-                person.id === childId
+                person.id === child.id
             )
         );
 
-        if (childUnit && !childUnits.includes(childUnit)) {
+        if (
+            childUnit &&
+            !childUnits.includes(childUnit)
+        ) {
             childUnits.push(childUnit);
         }
 
     });
 
+
     if (childUnits.length === 0) {
         return;
     }
 
+
     /*
-     * Calculate the total width of all children.
+     * Width of the parent unit.
+     */
+    const parentWidth =
+        parentUnit.people.length === 2
+            ? cardWidth * 2 + spouseGap
+            : cardWidth;
+
+
+    /*
+     * Center of the parent unit.
+     */
+    const parentCenter =
+        parentUnit.x + parentWidth / 2;
+
+
+    /*
+     * Calculate the width of the entire
+     * sibling group.
      */
     const childWidths = childUnits.map(unit =>
         unit.people.length === 2
             ? cardWidth * 2 + spouseGap
             : cardWidth
     );
+
 
     const totalWidth =
         childWidths.reduce(
@@ -219,23 +259,24 @@ units.forEach(parentUnit => {
         ) +
         unitGap * (childUnits.length - 1);
 
+
     /*
-     * Start far enough left that the
-     * entire sibling group is centered.
+     * Start so the entire sibling group
+     * is centered underneath the parent.
      */
     let childX =
         parentCenter - totalWidth / 2;
+
 
     childUnits.forEach((childUnit, index) => {
 
         childUnit.x = childX;
 
-        const childWidth =
-            childWidths[index];
-
-        childX += childWidth + unitGap;
+        childX +=
+            childWidths[index] + unitGap;
 
     });
+
 });
 
 /*

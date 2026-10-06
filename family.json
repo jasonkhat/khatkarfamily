@@ -31,7 +31,7 @@
         "id": "sukhwinder",
         "name": "Sukhwinder Khatkar",
         "generation": "X",
-        "birthOrder": 4,
+        "birthOrder": 5,
         "photo": "",
         "parents": ["mohinder","jarnail"],
         "spouse": "rajinder"
@@ -41,7 +41,7 @@
         "id": "tony",
         "name": "Tony Singh",
         "generation": "X",
-        "birthOrder": 1,
+        "birthOrder": 4,
         "photo": "",
         "parents": ["mohinder", "jarnail"],
         "spouse": "kashmir"
@@ -88,7 +88,7 @@
         "generation": "X",
         "birthOrder": 1,
         "photo": "",
-        "parents": [""],
+        "parents": [],
         "spouse": "chachu"
     },
         {
@@ -124,7 +124,7 @@
         "generation": "BB",
         "birthOrder": 1,
         "photo": "",
-        "parents": [""],
+        "parents": [],
         "spouse": "guddo"
     },
         {
@@ -169,7 +169,7 @@
         "generation": "G",
         "birthOrder": 1,
         "photo": "",
-        "parents": [""],
+        "parents": [],
         "spouse": "mohinder"
     },
         {
@@ -178,7 +178,7 @@
         "generation": "G",
         "birthOrder": 1,
         "photo": "",
-        "parents": [""],
+        "parents": [],
         "spouse": "resham"
     },
         {
@@ -187,7 +187,7 @@
         "generation": "G",
         "birthOrder": 1,
         "photo": "",
-        "parents": [""],
+        "parents": [],
         "spouse": "nirmal"
     }
 ]
