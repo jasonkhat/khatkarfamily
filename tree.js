@@ -133,11 +133,31 @@ function drawTree(family) {
 
 
 /*
- * Position each generation.
+ * POSITION THE TREE
  *
- * People are ordered by birth order within
- * their biological family. Spouses are kept
- * together visually.
+ * The layout is based on INDIVIDUAL PEOPLE first.
+ *
+ * Biological relationships determine where a person belongs.
+ * Spouses are only kept visually adjacent and do not affect
+ * the person's birth-order position.
+ */
+
+
+/*
+ * Give every visual unit its generation Y position.
+ */
+units.forEach(unit => {
+
+    unit.y = generationY[unit.generation];
+
+});
+
+
+/*
+ * Give every unit a basic fallback X position.
+ *
+ * This is only used for people who do not have a
+ * biological parent group that we can position them under.
  */
 generationOrder.forEach(generation => {
 
@@ -148,10 +168,7 @@ generationOrder.forEach(generation => {
         return;
     }
 
-    const y = generationY[generation];
-
     let currentX = 200;
-
 
     generationUnits.forEach(unit => {
 
@@ -161,142 +178,237 @@ generationOrder.forEach(generation => {
                 : cardWidth;
 
         unit.x = currentX;
-        unit.y = y;
 
-        currentX += unitWidth + unitGap;
+        currentX +=
+            unitWidth + unitGap;
 
     });
 
 });
 
+
 /*
- * Center each biological sibling group
- * underneath its parents.
+ * Build biological sibling groups.
+ *
+ * People with the same parents belong to the same
+ * biological sibling group.
  */
-units.forEach(parentUnit => {
+const siblingGroups = {};
 
-    const parentIds =
-        parentUnit.people.map(person => person.id);
+family.forEach(person => {
 
-    /*
-     * Find children whose parents belong to
-     * this parent unit.
-     *
-     * Both parents must be represented when
-     * the child has two parents.
-     */
-    const children = family.filter(child => {
+    const parents =
+        Array.isArray(person.parents)
+            ? [...person.parents].sort()
+            : [];
 
-        if (!child.parents || child.parents.length === 0) {
-            return false;
-        }
+    const key = parents.join("|");
 
-        return parentIds.every(parentId =>
-            child.parents.includes(parentId)
+    if (!siblingGroups[key]) {
+        siblingGroups[key] = [];
+    }
+
+    siblingGroups[key].push(person);
+
+});
+
+
+/*
+ * Sort each biological sibling group by birth order.
+ *
+ * IMPORTANT:
+ *
+ * This sorts INDIVIDUAL PEOPLE.
+ *
+ * A spouse's birthOrder therefore cannot affect
+ * where their spouse is placed in their family.
+ */
+Object.values(siblingGroups).forEach(group => {
+
+    group.sort((a, b) => {
+
+        return (
+            (a.birthOrder ?? 999) -
+            (b.birthOrder ?? 999)
         );
 
     });
 
+});
 
-    if (children.length === 0) {
+
+/*
+ * Position each biological sibling group beneath
+ * its actual biological parents.
+ */
+Object.values(siblingGroups).forEach(group => {
+
+    /*
+     * A person with no parents cannot be positioned
+     * beneath a parent group.
+     */
+    if (
+        group.length === 0 ||
+        !group[0].parents ||
+        group[0].parents.length === 0
+    ) {
         return;
     }
 
 
     /*
-     * Sort siblings by birth order.
+     * Find the visual units containing the parents.
      */
-    children.sort((a, b) =>
-        (a.birthOrder ?? 999) -
-        (b.birthOrder ?? 999)
-    );
+    const parentUnits = [];
 
+    group[0].parents.forEach(parentId => {
 
-    /*
-     * Find the visual units containing
-     * those children.
-     */
-    const childUnits = [];
-
-    children.forEach(child => {
-
-        const childUnit = units.find(unit =>
-            unit.people.some(person =>
-                person.id === child.id
-            )
-        );
+        const parentUnit =
+            units.find(unit =>
+                unit.people.some(
+                    person =>
+                        person.id === parentId
+                )
+            );
 
         if (
-            childUnit &&
-            !childUnits.includes(childUnit)
+            parentUnit &&
+            !parentUnits.includes(parentUnit)
         ) {
-            childUnits.push(childUnit);
+            parentUnits.push(parentUnit);
         }
 
     });
 
 
-    if (childUnits.length === 0) {
+    /*
+     * If the parents cannot be found, keep the
+     * fallback position.
+     */
+    if (parentUnits.length === 0) {
         return;
     }
 
 
     /*
-     * Width of the parent unit.
+     * Find the left and right edges of the
+     * biological parent group.
      */
-    const parentWidth =
-        parentUnit.people.length === 2
-            ? cardWidth * 2 + spouseGap
-            : cardWidth;
+    const parentLeft =
+        Math.min(
+            ...parentUnits.map(unit => unit.x)
+        );
 
+    const parentRight =
+        Math.max(
+            ...parentUnits.map(unit => {
 
-    /*
-     * Center of the parent unit.
-     */
-    const parentCenter =
-        parentUnit.x + parentWidth / 2;
+                const width =
+                    unit.people.length === 2
+                        ? cardWidth * 2 + spouseGap
+                        : cardWidth;
 
+                return unit.x + width;
 
-    /*
-     * Width of every child unit.
-     */
-    const childWidths =
-        childUnits.map(unit =>
-            unit.people.length === 2
-                ? cardWidth * 2 + spouseGap
-                : cardWidth
+            })
         );
 
 
     /*
-     * Total width of the sibling group.
+     * Center of the biological parent group.
      */
-    const totalWidth =
-        childWidths.reduce(
-            (sum, width) => sum + width,
-            0
-        ) +
-        unitGap * (childUnits.length - 1);
+    const parentCenter =
+        (parentLeft + parentRight) / 2;
 
 
     /*
-     * Start position that centers the
-     * entire sibling group below parents.
+     * IMPORTANT:
+     *
+     * Each biological child gets one card-width
+     * position in the sibling row.
+     *
+     * Their spouse does NOT increase the width
+     * used to determine sibling order.
      */
-    let childX =
+    const totalWidth =
+        group.length * cardWidth +
+        (group.length - 1) * unitGap;
+
+
+    let childLeft =
         parentCenter - totalWidth / 2;
 
 
-    childUnits.forEach((childUnit, index) => {
+    /*
+     * Place each biological child.
+     */
+    group.forEach(person => {
 
-        childUnit.x = childX;
+        const unit =
+            units.find(unit =>
+                unit.people.some(
+                    member =>
+                        member.id === person.id
+                )
+            );
 
-        childX +=
-            childWidths[index] + unitGap;
+        if (!unit) {
+            return;
+        }
+
+
+        /*
+         * Determine whether this person is the
+         * first or second person in their spouse unit.
+         */
+        const personIndex =
+            unit.people.findIndex(
+                member =>
+                    member.id === person.id
+            );
+
+
+        /*
+         * The person's own card needs to occupy
+         * the biological sibling position.
+         *
+         * If they are the second spouse, move the
+         * entire visual unit left so their card
+         * lands at childLeft.
+         */
+        if (personIndex === 0) {
+
+            unit.x =
+                childLeft;
+
+        } else {
+
+            unit.x =
+                childLeft -
+                cardWidth -
+                spouseGap;
+
+        }
+
+
+        /*
+         * Keep the unit in its correct generation.
+         */
+        unit.y =
+            generationY[unit.generation];
+
+
+        /*
+         * Advance by ONE biological card width,
+         * not by the spouse-unit width.
+         */
+        childLeft +=
+            cardWidth + unitGap;
 
     });
 
 });
+
 
 /*
  * Shift the entire tree right if anything
@@ -304,19 +416,25 @@ units.forEach(parentUnit => {
  */
 const leftMargin = 200;
 
-const leftmostX = Math.min(
-    ...units.map(unit => unit.x)
-);
+const leftmostX =
+    Math.min(
+        ...units.map(unit => unit.x)
+    );
 
 if (leftmostX < leftMargin) {
 
-    const shiftX = leftMargin - leftmostX;
+    const shiftX =
+        leftMargin - leftmostX;
 
     units.forEach(unit => {
+
         unit.x += shiftX;
+
     });
 
 }
+
+
 
 
 /*
